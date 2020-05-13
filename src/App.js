@@ -3,9 +3,16 @@ import { jsx, css } from "@emotion/core";
 import React from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { InputField } from "./components/lib";
+
+/**
+ * @param {object} s
+ * @param {object} a
+ */
+const merge = (s, a) => ({ ...s, ...a });
 
 function App() {
-  const [state, dispatch] = React.useReducer((s, a) => ({ ...s, ...a }), {
+  const [state, dispatch] = React.useReducer(merge, {
     short_name: "manifesto",
     name: "manifesto web app manifest generator",
     start_url: ".",
@@ -75,42 +82,12 @@ function App() {
           >
             {Object.entries(state).map(([name, value]) => {
               return (
-                <div
+                <InputField
                   key={name}
-                  css={css`
-                    display: inline-block;
-                    margin: 1rem 0 0;
-                  `}
-                >
-                  <label
-                    htmlFor={name}
-                    css={css`
-                      display: block;
-                      font-size: 0.75rem;
-                      line-height: 1.5;
-                    `}
-                  >
-                    {name}
-                  </label>
-                  <input
-                    type="text"
-                    id={name}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    css={css`
-                      width: 100%;
-                      padding: 0 0.5em;
-                      font-size: 1rem;
-                      line-height: 2.5;
-                      border: 0;
-                      border-bottom: 1px solid currentColor;
-                      border-radius: 0;
-                      border-top-left-radius: 0.25em;
-                      border-top-right-radius: 0.25em;
-                    `}
-                  />
-                </div>
+                  name={name}
+                  value={value}
+                  onChange={onChange}
+                />
               );
             })}
             <div>
