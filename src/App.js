@@ -1,9 +1,11 @@
 /** @jsx jsx */
 import { jsx, css } from "@emotion/core";
 import React from "react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 function App() {
-  const [state, setState] = React.useState({
+  const [state, dispatch] = React.useReducer((s, a) => ({ ...s, ...a }), {
     short_name: "manifesto",
     name: "manifesto web app manifest generator",
     start_url: ".",
@@ -12,13 +14,15 @@ function App() {
     background_color: "#ffffff",
   });
 
-  const onChange = React.useCallback(evt => {
-    const { name, value } = evt.target;
-    setState(prevState => ({
-      ...prevState,
-      [name]: value,
-    }));
-  }, []);
+  const onChange = React.useCallback(
+    evt => {
+      const { name, value } = evt.target;
+      dispatch({ [name]: value });
+    },
+    [dispatch]
+  );
+
+  const zipRef = React.useRef(new JSZip());
 
   return (
     <React.Fragment>
@@ -109,6 +113,51 @@ function App() {
                 </div>
               );
             })}
+            <div>
+              <input
+                type="file"
+                accept="image/png"
+                onChange={evt => {
+                  if (evt.target.files && evt.target.files[0]) {
+                    zipRef.current.folder("icons");
+                    const img = new Image();
+                    img.src = URL.createObjectURL(evt.target.files[0]);
+                    img.onload = () => {
+                      const canvas = document.createElement("canvas");
+                      // iterate over different sizes, 76, 92, 128...
+                      canvas.width = 512;
+                      canvas.height = 512;
+                      const { naturalWidth, naturalHeight } = img;
+                      const ctx = canvas.getContext("2d");
+
+                      const max = Math.min(naturalWidth, naturalHeight);
+                      const sX = (naturalWidth - max) / 2;
+                      const sY = (naturalHeight - max) / 2;
+                      ctx.drawImage(
+                        img,
+                        sX,
+                        sY,
+                        naturalWidth,
+                        naturalHeight,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height
+                      );
+
+                      canvas.toBlob(blob => {
+                        zipRef.current
+                          .file("icons/icon.png", blob)
+                          .generateAsync({ type: "blob" })
+                          .then(blob => {
+                            saveAs(blob, "manifest.zip");
+                          });
+                      });
+                    };
+                  }
+                }}
+              />
+            </div>
           </div>
         </section>
         <section
@@ -117,7 +166,7 @@ function App() {
             color: #eceff1;
             padding: 1rem;
             font-size: 1rem;
-            line-height: 1.2em;
+            line-height: 1.5em;
           `}
         >
           <pre css={{ margin: 0 }}>{JSON.stringify(state, null, 2)}</pre>
