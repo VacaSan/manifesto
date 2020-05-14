@@ -3,7 +3,7 @@ import { jsx, css } from "@emotion/core";
 import React from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { InputField } from "./components/lib";
+import { Button, InputField } from "./components/lib";
 
 /**
  * @param {object} s
@@ -15,7 +15,8 @@ const merge = (s, a) => ({ ...s, ...a });
  * @param {string} key
  * @param {any} value
  */
-const replacer = (key, value) => (key === "blob" ? undefined : value);
+const replacer = (key, value) =>
+  key === "blob" || value === "" ? undefined : value;
 
 function App() {
   const [state, dispatch] = React.useReducer(merge, {
@@ -72,6 +73,7 @@ function App() {
           css={css`
             color: rgba(0, 0, 0, 0.65);
             font-size: 1.25rem;
+            font-weight: 500;
             line-height: 1.6;
           `}
         >
@@ -96,6 +98,7 @@ function App() {
               display: grid;
               grid-template-columns: 1fr 1fr;
               grid-column-gap: 1rem;
+              margin-bottom: 1rem;
             `}
           >
             {Object.entries(state).map(([name, value]) => {
@@ -111,24 +114,24 @@ function App() {
                 />
               );
             })}
-            <div>
-              <input
-                type="file"
-                accept="image/png"
-                onChange={evt => {
-                  if (evt.target.files && evt.target.files[0]) {
-                    generateIcons(evt.target.files[0]).then(icons =>
-                      dispatch({ icons })
-                    );
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <button type="button" onClick={onDownload}>
-                Download!
-              </button>
-            </div>
+          </div>
+          <div>
+            <input
+              type="file"
+              accept="image/png"
+              onChange={evt => {
+                if (evt.target.files && evt.target.files[0]) {
+                  generateIcons(evt.target.files[0]).then(icons =>
+                    dispatch({ icons })
+                  );
+                }
+              }}
+            />
+          </div>
+          <div>
+            <Button type="button" onClick={onDownload}>
+              Download!
+            </Button>
           </div>
         </section>
         <section
