@@ -11,6 +11,12 @@ import { InputField } from "./components/lib";
  */
 const merge = (s, a) => ({ ...s, ...a });
 
+/**
+ * @param {string} key
+ * @param {any} value
+ */
+const replacer = (key, value) => (key === "blob" ? undefined : value);
+
 function App() {
   const [state, dispatch] = React.useReducer(merge, {
     short_name: "manifesto",
@@ -29,7 +35,19 @@ function App() {
     [dispatch]
   );
 
-  const zipRef = React.useRef(new JSZip());
+  async function onDownload() {
+    const zip = new JSZip();
+
+    zip.file("manifest.json", JSON.stringify(state, replacer, 2));
+    zip.folder("icons");
+
+    (state.icons || []).forEach(icon => {
+      zip.file(icon.src, icon.blob);
+    });
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    saveAs(blob, "manifesto.zip");
+  }
 
   return (
     <React.Fragment>
@@ -81,6 +99,9 @@ function App() {
             `}
           >
             {Object.entries(state).map(([name, value]) => {
+              // is there a nicer way?
+              if (name === "icons") return null;
+
               return (
                 <InputField
                   key={name}
@@ -96,44 +117,17 @@ function App() {
                 accept="image/png"
                 onChange={evt => {
                   if (evt.target.files && evt.target.files[0]) {
-                    zipRef.current.folder("icons");
-                    const img = new Image();
-                    img.src = URL.createObjectURL(evt.target.files[0]);
-                    img.onload = () => {
-                      const canvas = document.createElement("canvas");
-                      // iterate over different sizes, 76, 92, 128...
-                      canvas.width = 512;
-                      canvas.height = 512;
-                      const { naturalWidth, naturalHeight } = img;
-                      const ctx = canvas.getContext("2d");
-
-                      const max = Math.min(naturalWidth, naturalHeight);
-                      const sX = (naturalWidth - max) / 2;
-                      const sY = (naturalHeight - max) / 2;
-                      ctx.drawImage(
-                        img,
-                        sX,
-                        sY,
-                        naturalWidth,
-                        naturalHeight,
-                        0,
-                        0,
-                        canvas.width,
-                        canvas.height
-                      );
-
-                      canvas.toBlob(blob => {
-                        zipRef.current
-                          .file("icons/icon.png", blob)
-                          .generateAsync({ type: "blob" })
-                          .then(blob => {
-                            saveAs(blob, "manifest.zip");
-                          });
-                      });
-                    };
+                    generateIcons(evt.target.files[0]).then(icons =>
+                      dispatch({ icons })
+                    );
                   }
                 }}
               />
+            </div>
+            <div>
+              <button type="button" onClick={onDownload}>
+                Download!
+              </button>
             </div>
           </div>
         </section>
@@ -146,10 +140,64 @@ function App() {
             line-height: 1.5em;
           `}
         >
-          <pre css={{ margin: 0 }}>{JSON.stringify(state, null, 2)}</pre>
+          <pre css={{ margin: 0 }}>{JSON.stringify(state, replacer, 2)}</pre>
         </section>
       </main>
     </React.Fragment>
+  );
+}
+
+/**
+ * @param {File} file
+ * @returns {Promise<HTMLImageElement>}
+ */
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+  });
+}
+
+/**
+ * @param {HTMLImageElement} img
+ * @param {number} [size=512]
+ */
+function cropAndResize(img, size = 512) {
+  const canvas = new OffscreenCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+
+  const { naturalWidth: sw, naturalHeight: sh } = img;
+
+  const minDimension = Math.min(sw, sh);
+  const sx = (sw - minDimension) / 2;
+  const sy = (sh - minDimension) / 2;
+
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+  return canvas.convertToBlob();
+}
+
+/**
+ * @param {File} file
+ */
+async function generateIcons(file) {
+  const img = await loadImage(file);
+
+  // TODO rest of required sizes...
+  const sizes = [16, 32, 64];
+
+  return await Promise.all(
+    sizes.map(async size => {
+      const blob = await cropAndResize(img, size);
+      return {
+        src: `icons/icon-${size}x${size}.png`,
+        type: "image/png",
+        sizes: `${size}x${size}`,
+        blob,
+      };
+    })
   );
 }
 
