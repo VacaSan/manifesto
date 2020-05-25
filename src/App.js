@@ -3,7 +3,7 @@ import { jsx, css } from "@emotion/core";
 import React from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { Button, InputField } from "./components/lib";
+import { Button, InputField, InputFile } from "./components/lib";
 
 /**
  * @param {object} s
@@ -116,8 +116,7 @@ function App() {
             })}
           </div>
           <div>
-            <input
-              type="file"
+            <InputFile
               accept="image/png"
               onChange={evt => {
                 if (evt.target.files && evt.target.files[0]) {

@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { jsx, css } from "@emotion/core";
 import styled from "@emotion/styled";
+import React from "react";
 
 /**
  * @param {object} props
@@ -104,4 +105,74 @@ const Button = styled.button`
   }
 `;
 
-export { InputField, Button };
+const callAll = (...fns) => (...args) => fns.forEach(fn => fn && fn(...args));
+
+/**
+ * @param {React.InputHTMLAttributes<HTMLInputElement>} props
+ */
+function InputFile(props) {
+  const [label, setLabel] = React.useState("Choose File");
+
+  const onChange = React.useCallback(evt => {
+    if (evt.target.files && evt.target.files[0]) {
+      setLabel(evt.target.files[0].name);
+    }
+  }, []);
+
+  return (
+    <div
+      css={css`
+        position: relative;
+        display: inline-block;
+      `}
+    >
+      <input
+        {...props}
+        onChange={callAll(onChange, props.onChange)}
+        id="upload"
+        type="file"
+        css={css`
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 0.1px;
+          height: 0.1px;
+          opacity: 0;
+          overflow: hidden;
+          z-index: -1;
+          & + label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            padding: 0 1em;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 0.25em;
+            outline: none;
+            cursor: pointer;
+            background-color: white;
+            box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2),
+              0px 2px 2px 0px rgba(0, 0, 0, 0.14),
+              0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+            transition: box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          &:hover + label,
+          &:focus + label {
+            box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2),
+              0px 4px 5px 0px rgba(0, 0, 0, 0.14),
+              0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+          }
+          &:active + label {
+            box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.2),
+              0px 8px 10px 1px rgba(0, 0, 0, 0.14),
+              0px 3px 14px 2px rgba(0, 0, 0, 0.12);
+          }
+        `}
+      />
+      <label htmlFor="upload">{label}</label>
+    </div>
+  );
+}
+
+export { InputField, InputFile, Button };
